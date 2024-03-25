@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -109,9 +110,181 @@ func MigrateFromUrl(cfg *config.AuthConfig, out io.Writer, srcUrl *url.URL, exis
 	switch settings.SrcType {
 	case "jfrog":
 		return MigrateFromJfrog(cfg, out, srcUrl, exists)
+	case "nexus":
+		return MigrateFromNexus(cfg, out, srcUrl, exists)
 	default:
 		return errors.Errorf("This src-type [%s] is not supported", settings.SrcType)
 	}
+}
+
+func MigrateFromNexus(cfg *config.AuthConfig, out io.Writer, nexusUrl *url.URL, exists map[string]bool) error {
+	log.Infof("Get file list from source repository [%s] ...", settings.Src)
+	// 获取仓库名称
+
+	assets, err := remote.FindFileListFromNexus(nexusUrl)
+	if err != nil {
+		return errors.Wrap(err, "failed to get npm file list from nexus")
+	}
+
+	if err = migrateNpmFromNexus(out, assets, cfg.Username, cfg.Password, exists); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func migrateNpmFromNexus(w io.Writer, assets []remote.Asset, username, password string, exists map[string]bool) error {
+	if settings.DryRun {
+		return nil
+	}
+
+	// Progress Bar
+	// initialize progress container, with custom width
+	p := mpb.New(mpb.WithWidth(80))
+	const pbName = "Pushing:"
+	// adding a single bar, which will inherit container's width
+	bar := p.Add(
+		int64(len(assets)),
+		mpb.NewBarFiller(mpb.BarStyle()),
+		mpb.PrependDecorators(
+			// display our name with one space on the right
+			decor.Name(pbName, decor.WC{W: len(pbName) + 1, C: decor.DidentRight}),
+			// replace ETA decorator with "done" message, OnComplete event
+			decor.OnComplete(
+				decor.AverageETA(decor.ET_STYLE_GO, decor.WC{W: 4}), "Done!",
+			),
+		),
+		mpb.AppendDecorators(
+			// counter
+			decor.Counters(0, "%d / %d  "),
+			// percentage
+			decor.Percentage(),
+			// average
+			// mpb.AppendDecorators(decor.AverageSpeed(decor.UnitKiB, "  % .1f")),
+		),
+	)
+
+	log.Info("Begin to migrate npm artifacts from nexus ...")
+	start := time.Now()
+
+	report := reportutil.NewReport()
+	if settings.Verbose {
+		defer func() {
+			log.Info("Migrate result:")
+			report.RenderV2(w)
+		}()
+	}
+
+	// 创建临时文件夹以及鉴权文件
+	err := createAuthFile(username, password)
+	if err != nil {
+		return err
+	}
+	defer cleanEnvironment()
+
+	for _, asset := range assets {
+		fileName, e := parseFileNameFromUrl(asset.DownloadUrl)
+		if e != nil {
+			return e
+		}
+		useTime, size, err := doMigrateNexusArt(fileName, asset.DownloadUrl)
+		bar.Increment()
+		if err != nil && err == ErrFileConflict {
+			report.AddSkippedResultV2(fileName, asset.Path, "409 Conflict", size, useTime)
+			return nil
+		} else if err != nil {
+			report.AddFailedResultV2(fileName, asset.Path, err.Error(), size, useTime)
+			if settings.FailFast {
+				err = errors.Wrapf(err, "failed to migrate %s", asset.Path)
+			}
+		} else {
+			report.AddSucceededResultV2(fileName, asset.Path, "Succeeded", size, useTime)
+		}
+		return nil
+	}
+
+	// wait for our bar to complete and flush
+	p.Wait()
+
+	log.Info("End to migrate.",
+		logfields.Duration("duration", time.Now().Sub(start)),
+		logfields.Int("succeededCount", len(report.SucceededResult)),
+		logfields.Int("skippedCount", len(report.SkippedResult)),
+		logfields.Int("failedCount", len(report.FailedResult)))
+
+	return nil
+}
+
+func parseFileNameFromUrl(downloadUrl string) (string, error) {
+	u, err := url.Parse(downloadUrl)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return "", errors.Wrapf(err, "Parse downloadUrl failed from %s", downloadUrl)
+	}
+
+	return path.Base(u.Path), nil
+}
+
+func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64, err error) {
+	start := time.Now()
+	defer func() { useTime = time.Since(start).Milliseconds() }()
+
+	// download
+	getResp, err := httputil.DefaultClient.GetWithAuth(downloadUrl, settings.SrcUsername, settings.SrcPassword)
+	if err != nil {
+		return useTime, 0, errors.Wrapf(err, "failed to download from %s", downloadUrl)
+	}
+	defer ioutils.QuiteClose(getResp.Body)
+
+	filePath := fmt.Sprintf(tarFile, fileName)
+
+	err = fileutil.WriteFile(filePath, getResp.Body)
+	if err != nil {
+		return useTime, 0, err
+	}
+
+	size, err = getSize(filePath)
+	if err != nil {
+		return useTime, 0, err
+	}
+
+	// untar
+	path := strings.TrimSuffix(fileName, ".tgz")
+	result, errOutput, err := cmdutil.Command(fmt.Sprintf(unTar, path, path, fileName, path))
+	if err != nil {
+		return useTime, 0, errors.Wrapf(err, "failed to unzip file %s: %s : %s", fileName, result, errOutput)
+	}
+
+	err = pkgMagicChange(fmt.Sprintf(pkgJson, path))
+	if err != nil {
+		log.Warn("file check package.json", logfields.Error(err))
+	}
+
+	// upload
+	for i := 0; i < 3; i++ {
+		cmd := fmt.Sprintf(publish, path, settings.GetDstHasSubSlash())
+		result, errOutput, err = cmdutil.Command(cmd)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if err != nil {
+		return useTime, 0, errors.Wrapf(err, "failed to publish artifact: %s:%s", result, errOutput)
+	}
+
+	return
+}
+
+func getSize(filePath string) (int64, error) {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		fmt.Println("Error getting file information:", err)
+		return 0, err
+	}
+
+	// 获取文件大小
+	return fileInfo.Size(), nil
 }
 
 func MigrateFromJfrog(cfg *config.AuthConfig, out io.Writer, jfrogUrl *url.URL, exists map[string]bool) error {
