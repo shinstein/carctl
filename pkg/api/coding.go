@@ -46,6 +46,8 @@ func FindDstExistsArtifacts(cfg *config.AuthConfig, dst, artifactType string) (r
 			openApiUrl, cfg.Username, cfg.Password, project, repo)
 	}
 
+	log.Infof("openApiUrl = %s, project = %s, repo = %s", openApiUrl, project, repo)
+
 	result = make(map[string]bool)
 	resp := &DescribeTeamArtifactsResp{}
 	for {
