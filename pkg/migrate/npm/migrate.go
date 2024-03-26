@@ -178,7 +178,7 @@ func migrateNpmFromNexus(w io.Writer, assets []remote.Asset, username, password 
 	if err != nil {
 		return err
 	}
-	defer cleanEnvironment()
+	//defer cleanEnvironment()
 
 	for _, asset := range assets {
 		fileName, e := parseFileNameFromUrl(asset.DownloadUrl)
