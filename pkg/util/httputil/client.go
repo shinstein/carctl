@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,8 +14,13 @@ import (
 )
 
 var (
+	tr = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
 	defaultHttpClient = &http.Client{
-		Timeout: time.Minute * 15,
+		Timeout:   time.Minute * 15,
+		Transport: tr,
 	}
 
 	DefaultClient = &Client{client: defaultHttpClient}
