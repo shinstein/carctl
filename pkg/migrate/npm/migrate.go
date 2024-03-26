@@ -33,7 +33,7 @@ import (
 
 const (
 	expr    = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc"
+	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc && ll"
 	clean   = "rm -rf ./npmCache && rm -rf ./.npmrc"
 	remove  = "rm -rf ./npmCache/%s"
 	tarFile = "./npmCache/%s"
@@ -185,6 +185,8 @@ func migrateNpmFromNexus(w io.Writer, assets []remote.Asset, username, password 
 		if e != nil {
 			return e
 		}
+
+		log.Infof("DownloadUrl = %s, fileName = %s", asset.DownloadUrl, fileName)
 		useTime, size, err := doMigrateNexusArt(fileName, asset.DownloadUrl)
 		bar.Increment()
 		if err != nil && err == ErrFileConflict {
