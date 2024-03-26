@@ -33,7 +33,7 @@ import (
 
 const (
 	expr    = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc && ll"
+	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc && ls -la"
 	clean   = "rm -rf ./npmCache && rm -rf ./.npmrc"
 	remove  = "rm -rf ./npmCache/%s"
 	tarFile = "./npmCache/%s"
