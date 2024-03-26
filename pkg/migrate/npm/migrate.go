@@ -14,9 +14,7 @@ import (
 	"time"
 
 	"github.com/coding-wepack/carctl/pkg/action"
-	"github.com/coding-wepack/carctl/pkg/api"
 	"github.com/coding-wepack/carctl/pkg/config"
-	"github.com/coding-wepack/carctl/pkg/constants"
 	"github.com/coding-wepack/carctl/pkg/log"
 	"github.com/coding-wepack/carctl/pkg/log/logfields"
 	"github.com/coding-wepack/carctl/pkg/migrate/npm/types"
@@ -73,12 +71,12 @@ func Migrate(cfg *action.Configuration, out io.Writer) error {
 	}
 	// exists artifacts
 	var exists map[string]bool
-	if !settings.Force {
-		exists, err = api.FindDstExistsArtifacts(&authConfig, settings.GetDstWithoutSlash(), constants.TypeNpm)
-		if err != nil {
-			return errors.Wrap(err, "failed to find dst repo exists artifacts")
-		}
-	}
+	//if !settings.Force {
+	//	exists, err = api.FindDstExistsArtifacts(&authConfig, settings.GetDstWithoutSlash(), constants.TypeNpm)
+	//	if err != nil {
+	//		return errors.Wrap(err, "failed to find dst repo exists artifacts")
+	//	}
+	//}
 	if settings.Verbose {
 		log.Debug("exists artifacts", logfields.Any("exists", exists))
 	}
