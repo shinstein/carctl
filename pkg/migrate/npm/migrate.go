@@ -33,7 +33,7 @@ import (
 
 const (
 	expr    = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc"
+	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc && cat ./.npmrc"
 	clean   = "rm -rf ./npmCache && rm -rf ./.npmrc"
 	remove  = "rm -rf ./npmCache/%s"
 	tarFile = "./npmCache/%s"
@@ -266,7 +266,7 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 	// upload
 	for i := 0; i < 3; i++ {
 		cmd := fmt.Sprintf(publish, path, settings.GetDstHasSubSlash())
-		log.Infof(fmt.Sprintf(publish, path, settings.GetDstHasSubSlash()))
+		log.Infof(cmd)
 		result, errOutput, err = cmdutil.Command(cmd)
 		if err == nil {
 			break
