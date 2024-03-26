@@ -59,7 +59,7 @@ func FindDstExistsArtifacts(cfg *config.AuthConfig, dst, artifactType string) (r
 		}
 		respRsl := resp.Response
 		if respRsl.Error != nil {
-			err = errors.Errorf("failed to find exists artifacts: %s", respRsl.Error.Code)
+			err = errors.Errorf("failed to find exists artifacts: %s, %s", respRsl.Error.Code, respRsl.Error.Message)
 			return
 		}
 		if settings.Verbose {
