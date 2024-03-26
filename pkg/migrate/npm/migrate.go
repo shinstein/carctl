@@ -33,7 +33,7 @@ import (
 
 const (
 	expr    = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc && cat ./.npmrc"
+	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc"
 	clean   = "rm -rf ./npmCache && rm -rf ./.npmrc"
 	remove  = "rm -rf ./npmCache/%s"
 	tarFile = "./npmCache/%s"
@@ -178,7 +178,7 @@ func migrateNpmFromNexus(w io.Writer, assets []remote.Asset, username, password 
 	if err != nil {
 		return err
 	}
-	defer cleanEnvironment()
+	//defer cleanEnvironment()
 
 	for _, asset := range assets {
 		fileName, e := parseFileNameFromUrl(asset.DownloadUrl)
@@ -251,8 +251,9 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 
 	// untar
 	path := strings.TrimSuffix(fileName, ".tgz")
-	result, errOutput, err := cmdutil.Command(fmt.Sprintf(unTar, path, path, fileName, path))
-	log.Infof(fmt.Sprintf(unTar, path, path, fileName, path))
+	untarCmd := fmt.Sprintf(unTar, path, path, fileName, path)
+	log.Infof(untarCmd)
+	result, errOutput, err := cmdutil.Command(untarCmd)
 	if err != nil {
 		log.Error("untar tgz failed.")
 		return useTime, 0, errors.Wrapf(err, "failed to unzip file %s: %s : %s", fileName, result, errOutput)
@@ -264,9 +265,9 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 	}
 
 	// upload
+	cmd := fmt.Sprintf(publish, path, settings.GetDstHasSubSlash())
+	log.Infof(cmd)
 	for i := 0; i < 3; i++ {
-		cmd := fmt.Sprintf(publish, path, settings.GetDstHasSubSlash())
-		log.Infof(cmd)
 		result, errOutput, err = cmdutil.Command(cmd)
 		if err == nil {
 			break
