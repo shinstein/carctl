@@ -32,15 +32,16 @@ import (
 )
 
 const (
-	expr    = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir = "mkdir ./npmCache && echo '%s' > ./.npmrc"
-	clean   = "rm -rf ./npmCache && rm -rf ./.npmrc"
-	remove  = "rm -rf ./npmCache/%s"
-	tarFile = "./npmCache/%s"
-	unTar   = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
-	publish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i '/\"publishConfig\": {/,/},/d' package.json && npm publish --registry=%s"
-	pkgJson = "./npmCache/%s/package/package.json"
-	npmrc   = `registry=%s
+	expr       = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
+	initDir    = "mkdir ./npmCache && echo '%s' > ./.npmrc"
+	clean      = "rm -rf ./npmCache && rm -rf ./.npmrc"
+	remove     = "rm -rf ./npmCache/%s"
+	tarFile    = "./npmCache/%s"
+	unTar      = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
+	publish    = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
+	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i 's/\"registry\": \"https:\\/\\/[^\"]*\"/\"registry\": \"%s\"/' package.json && npm publish --registry=%s"
+	pkgJson    = "./npmCache/%s/package/package.json"
+	npmrc      = `registry=%s
 always-auth=true
 //%s:username=%s
 //%s:_password=%s
@@ -264,14 +265,14 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 	}
 
 	// upload
-	cmd := fmt.Sprintf(publish, path, settings.GetDstHasSubSlash())
+	cmd := fmt.Sprintf(npmPublish, path, settings.GetDstHasSubSlash(), settings.GetDstHasSubSlash())
 	log.Infof(cmd)
 	for i := 0; i < 3; i++ {
 		result, errOutput, err = cmdutil.Command(cmd)
 		if err == nil {
 			break
 		}
-		log.Errorf("npm publis failed. err = ", err)
+		log.Errorf("npm publis failed. err = ", err.Error())
 		time.Sleep(time.Second)
 	}
 	if err != nil {
