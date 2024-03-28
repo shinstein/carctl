@@ -39,7 +39,7 @@ const (
 	tarFile    = "./npmCache/%s"
 	unTar      = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
 	publish    = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
-	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i 's/\"registry\": \"[^\"]*\"/\"registry\": \"%s\"/' package.json && npm publish --registry=%s"
+	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/\"\\(@[^\"]*:\\)\\?registry\": \"[^\"]*\"/\"\\1registry\": \"%s\"/g' package.json && npm publish --registry=%s"
 	pkgJson    = "./npmCache/%s/package/package.json"
 	npmrc      = `registry=%s
 always-auth=true
