@@ -38,7 +38,7 @@ const (
 	remove  = "rm -rf ./npmCache/%s"
 	tarFile = "./npmCache/%s"
 	unTar   = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
-	publish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i '/\"publishConfig\": {/,/},/d' && npm publish --registry=%s"
+	publish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i '/\"publishConfig\": {/,/},/d' package.json && npm publish --registry=%s"
 	pkgJson = "./npmCache/%s/package/package.json"
 	npmrc   = `registry=%s
 always-auth=true
@@ -272,7 +272,7 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 		if err == nil {
 			break
 		}
-		log.Error("npm publis failed.")
+		log.Errorf("npm publis failed. err = ", err)
 		time.Sleep(time.Second)
 	}
 	if err != nil {
