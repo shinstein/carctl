@@ -40,8 +40,7 @@ const (
 	unTar        = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
 	publish      = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
 	npmPublish   = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/\"\\(@[^\"]*:\\)\\?registry\": \"[^\"]*\"/\"\\1registry\": \"%s\"/g' package.json && npm publish --registry=%s"
-	npmPublishV2 = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/http:\\/\\/10.2.38.200:8081\\/repository\\/%s\\//%s/g' package.json && npm publish --registry=%s"
-	nexusUrl     = "http:\\/\\/10.2.38.200:8081\\/repository\\/%s\\/"
+	npmPublishV2 = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/http:\\/\\/10.2.38.200:8081\\/repository\\/%s\\//%s/g' package.json && sed -i 's/https:\\/\\/repo.crec.cn\\/repository\\/%s\\//%s/g' package.json && npm publish --registry=%s"
 	pkgJson      = "./npmCache/%s/package/package.json"
 	npmrc        = `registry=%s
 always-auth=true
@@ -272,7 +271,7 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 
 	regularRepoUrl := strings.ReplaceAll(repoUrl, "/", "\\/")
 
-	cmd := fmt.Sprintf(npmPublishV2, path, repoName, regularRepoUrl, repoUrl)
+	cmd := fmt.Sprintf(npmPublishV2, path, repoName, regularRepoUrl, repoName, regularRepoUrl, repoUrl)
 	log.Infof(cmd)
 	for i := 0; i < 3; i++ {
 		result, errOutput, err = cmdutil.Command(cmd)
