@@ -32,16 +32,18 @@ import (
 )
 
 const (
-	expr       = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
-	initDir    = "mkdir ./npmCache && echo '%s' > ./.npmrc"
-	clean      = "rm -rf ./npmCache && rm -rf ./.npmrc"
-	remove     = "rm -rf ./npmCache/%s"
-	tarFile    = "./npmCache/%s"
-	unTar      = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
-	publish    = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
-	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/\"\\(@[^\"]*:\\)\\?registry\": \"[^\"]*\"/\"\\1registry\": \"%s\"/g' package.json && npm publish --registry=%s"
-	pkgJson    = "./npmCache/%s/package/package.json"
-	npmrc      = `registry=%s
+	expr         = "(.*)/-/.*\\-(\\d+\\.\\d+\\.\\d+.*).tgz"
+	initDir      = "mkdir ./npmCache && echo '%s' > ./.npmrc"
+	clean        = "rm -rf ./npmCache && rm -rf ./.npmrc"
+	remove       = "rm -rf ./npmCache/%s"
+	tarFile      = "./npmCache/%s"
+	unTar        = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
+	publish      = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
+	npmPublish   = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/\"\\(@[^\"]*:\\)\\?registry\": \"[^\"]*\"/\"\\1registry\": \"%s\"/g' package.json && npm publish --registry=%s"
+	npmPublishV2 = "cd ./npmCache/%s/package && cp ../../../.npmrc . && cp package.json package.json.bak && sed -i 's/http:\\/\\/10.2.38.200:8081\\/repository\\/%s\\//%s/g' package.json && npm publish --registry=%s"
+	nexusUrl     = "http:\\/\\/10.2.38.200:8081\\/repository\\/%s\\/"
+	pkgJson      = "./npmCache/%s/package/package.json"
+	npmrc        = `registry=%s
 always-auth=true
 //%s:username=%s
 //%s:_password=%s
@@ -266,9 +268,11 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 
 	// upload
 	repoUrl := settings.GetDstHasSubSlash()
+	repoName, _ := parseFileNameFromUrl(strings.TrimSuffix(repoUrl, "/"))
 
 	regularRepoUrl := strings.ReplaceAll(repoUrl, "/", "\\/")
-	cmd := fmt.Sprintf(npmPublish, path, regularRepoUrl, repoUrl)
+
+	cmd := fmt.Sprintf(npmPublishV2, path, repoName, regularRepoUrl, repoUrl)
 	log.Infof(cmd)
 	for i := 0; i < 3; i++ {
 		result, errOutput, err = cmdutil.Command(cmd)
