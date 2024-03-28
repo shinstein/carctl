@@ -39,7 +39,7 @@ const (
 	tarFile    = "./npmCache/%s"
 	unTar      = "cd ./npmCache && rm -rf ./%s && mkdir ./%s && tar -xf %s -C %s"
 	publish    = "cd ./npmCache/%s/package && cp ../../../.npmrc . && npm publish --registry=%s"
-	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i 's/\"registry\": \"https:\\/\\/[^\"]*\"/\"registry\": \"%s\"/' package.json && npm publish --registry=%s"
+	npmPublish = "cd ./npmCache/%s/package && cp ../../../.npmrc . && sed -i 's/\"registry\": \"[^\"]*\"/\"registry\": \"%s\"/' package.json && npm publish --registry=%s"
 	pkgJson    = "./npmCache/%s/package/package.json"
 	npmrc      = `registry=%s
 always-auth=true
@@ -265,7 +265,10 @@ func doMigrateNexusArt(fileName, downloadUrl string) (useTime int64, size int64,
 	}
 
 	// upload
-	cmd := fmt.Sprintf(npmPublish, path, settings.GetDstHasSubSlash(), settings.GetDstHasSubSlash())
+	repoUrl := settings.GetDstHasSubSlash()
+
+	regularRepoUrl := strings.ReplaceAll(repoUrl, "/", "\\/")
+	cmd := fmt.Sprintf(npmPublish, path, regularRepoUrl, repoUrl)
 	log.Infof(cmd)
 	for i := 0; i < 3; i++ {
 		result, errOutput, err = cmdutil.Command(cmd)
