@@ -200,7 +200,6 @@ func migrateNpmFromNexus(w io.Writer, assets []remote.Asset, username, password 
 		} else {
 			report.AddSucceededResultV2(fileName, asset.Path, "Succeeded", size, useTime)
 		}
-		return nil
 	}
 
 	// wait for our bar to complete and flush
